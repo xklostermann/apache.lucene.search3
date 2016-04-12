@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import org.controlsfx.control.textfield.*?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" styleClass="background" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.atos.search3.view.SearchController">
+   <children>
+      <SplitPane dividerPositions="0.5" orientation="VERTICAL" prefHeight="200.0" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <items>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+               <children>
+                  <Button fx:id="path" layoutX="75.0" layoutY="106.0" mnemonicParsing="false" onAction="#handlePath" text="Path..." />
+                  <TextField fx:id="searchfield" layoutX="8.0" layoutY="65.0" prefHeight="33.0" prefWidth="417.0" styleClass="password-field" />
+                  <Button layoutX="8.0" layoutY="106.0" mnemonicParsing="false" onAction="#search" text="Search" />
+                  <Button layoutX="8.0" layoutY="141.0" mnemonicParsing="false" onAction="#Index" prefHeight="25.0" prefWidth="52.0" text="Index" />
+                  <TextField fx:id="textfieldSelectedDirectory" layoutX="142.0" layoutY="106.0" text="C:/" />
+                  <Label layoutX="425.0" layoutY="66.0" prefHeight="130.0" prefWidth="167.0" styleClass="folder-icon" stylesheets="@Gif.css" />
+                  <ProgressBar layoutX="75.0" layoutY="141.0" prefHeight="25.0" prefWidth="217.0" progress="0.0" />
+                  <RadioButton fx:id="button1" layoutX="314.0" layoutY="110.0" mnemonicParsing="false" selected="true" text="Explorer">
+                     <toggleGroup>
+                        <ToggleGroup fx:id="group" />
+                     </toggleGroup></RadioButton>
+                  <RadioButton fx:id="button2" layoutX="314.0" layoutY="145.0" mnemonicParsing="false" text="Program" toggleGroup="$group" />
+               </children>
+            </AnchorPane>
+          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
+               <children>
+                  <TableView fx:id="searchResult" layoutX="36.0" layoutY="-2.0" onMouseClicked="#openexplorer" prefHeight="196.0" prefWidth="598.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                    <columns>
+                      <TableColumn fx:id="No" prefWidth="32.0" text="No" />
+                      <TableColumn fx:id="Name" prefWidth="458.0" text="Name" />
+                      <TableColumn fx:id="Type" prefWidth="107.0" text="Type" />
+                    </columns>
+                  </TableView>
+               </children>
+            </AnchorPane>
+        </items>
+      </SplitPane>
+   </children>
+</AnchorPane>
