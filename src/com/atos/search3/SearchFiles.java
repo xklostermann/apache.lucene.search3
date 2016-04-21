@@ -35,7 +35,8 @@ public class SearchFiles implements Runnable {
 	private final static ObservableList<Searchresults> data = FXCollections.observableArrayList();
 	private static MainApp mainApp;
 	private static SearchController search;
-  private SearchFiles(int i) {
+  private static int swi = 1;
+	private SearchFiles(int i) {
 	  this.i = i;
   }
 
@@ -126,7 +127,10 @@ public class SearchFiles implements Runnable {
       }
 
       doPagingSearch(in, searcher, query, hitsPerPage, raw, queries == null && queryString == null);
-
+if(swi==0){
+	break;
+}
+      
       if (queryString != null) {
         break;
       }
@@ -152,8 +156,11 @@ public class SearchFiles implements Runnable {
     ScoreDoc[] hits = results.scoreDocs;
     
     int numTotalHits = results.totalHits;
+    if(numTotalHits==0){
+    	swi = 0;
+    }else{
     System.out.println(numTotalHits + " total matching documents");
-
+    
     int start = 0;
     int end = Math.min(numTotalHits, hitsPerPage);
         
@@ -193,7 +200,7 @@ public class SearchFiles implements Runnable {
         	
         	////tutututu
         	
-          System.out.println((i+1) + ". " + "No path for this document");
+          System.out.println((i+1) + ". " + "No path for this document"); //////////////
         }
                   
       }
@@ -240,6 +247,7 @@ public class SearchFiles implements Runnable {
         if (quit) break;
         end = Math.min(numTotalHits, start + hitsPerPage);
       }
+    }
     }
   }
 

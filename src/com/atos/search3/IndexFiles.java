@@ -13,8 +13,18 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
+import org.w3c.tidy.Tidy;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -27,6 +37,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
 import com.atos.search3.view.*;
+import com.sun.beans.decoder.DocumentHandler;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
@@ -45,6 +56,7 @@ public class IndexFiles implements Runnable {
 	private int var;
 	public static SearchController search = new SearchController();
 
+	// public static
 	static IndexFiles index = new IndexFiles(10);
 	static Thread t = new Thread();
 	private MainApp mainApp;
@@ -65,76 +77,119 @@ public class IndexFiles implements Runnable {
 
 		System.out.println(docsPath);
 
-		boolean create = true;
-		// for(int i=0;i<args.length;i++) {
-		// if ("-index".equals(args[i])) {
-		// indexPath = args[i+1];
-		// i++;
-		// } else if ("-docs".equals(args[i])) {
-		// docsPath = args[i+1];
-		// i++;
-		// } else if ("-update".equals(args[i])) {
-		// create = false;
-		// }
-		// }
+		if (docsPath.startsWith("www")) {
+			Document doc = new Document();
+			final Path file = Paths.get(docsPath);
+			long lastModified = 0;
+			
 
-		// if (docsPath == null) {
-		// System.err.println("Usage: " + usage);
-		// System.exit(1);
-		// }
+			try {
+				
+				Analyzer analyzer = new StandardAnalyzer();
+				IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+				Directory dir = FSDirectory.open(Paths.get(indexPath));
+				IndexWriter writer = new IndexWriter(dir, iwc);
+				InputStream input = new URL("http://" + docsPath).openStream();
+				doc = getDocument(input, file, lastModified);
 
-		final Path docDir = Paths.get(docsPath);
-		if (!Files.isReadable(docDir)) {
-			System.out.println("Document directory '" + docDir.toAbsolutePath()
-					+ "' does not exist or is not readable, please check the path");
-			System.exit(1);
-		}
+				if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+					// New index, so we just add the document (no old document
+					// can
+					// be there):
+					System.out.println("adding " + file);
+					writer.addDocument(doc);
+				} else {
+					// Existing index (an old copy of this document may have
+					// been
+					// indexed) so
+					// we use updateDocument instead to replace the old one
+					// matching
+					// the exact
+					// path, if present:
+					System.out.println("updating " + file);
+					writer.updateDocument(new Term("path", file.toString()), doc);
+					writer.close();
+				}
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		} else {
 
-		Date start = new Date();
-		try {
-			System.out.println("Indexing to directory '" + indexPath + "'...");
+			boolean create = true;
+			// for(int i=0;i<args.length;i++) {
+			// if ("-index".equals(args[i])) {
+			// indexPath = args[i+1];
+			// i++;
+			// } else if ("-docs".equals(args[i])) {
+			// docsPath = args[i+1];
+			// i++;
+			// } else if ("-update".equals(args[i])) {
+			// create = false;
+			// }
+			// }
 
-			Directory dir = FSDirectory.open(Paths.get(indexPath));
-			Analyzer analyzer = new StandardAnalyzer();
-			IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+			// if (docsPath == null) {
+			// System.err.println("Usage: " + usage);
+			// System.exit(1);
+			// }
 
-			if (create) {
-				// Create a new index in the directory, removing any
-				// previously indexed documents:
-				iwc.setOpenMode(OpenMode.CREATE);
-			} else {
-				// Add new documents to an existing index:
-				iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
+			final Path docDir = Paths.get(docsPath);
+			if (!Files.isReadable(docDir)) {
+				System.out.println("Document directory '" + docDir.toAbsolutePath()
+						+ "' does not exist or is not readable, please check the path");
+				System.exit(1);
 			}
 
-			// Optional: for better indexing performance, if you
-			// are indexing many documents, increase the RAM
-			// buffer. But if you do this, increase the max heap
-			// size to the JVM (eg add -Xmx512m or -Xmx1g):
-			//
-			// iwc.setRAMBufferSizeMB(256.0);
+			Date start = new Date();
+			try {
+				System.out.println("Indexing to directory '" + indexPath + "'...");
 
-			IndexWriter writer = new IndexWriter(dir, iwc);
-			indexDocs(writer, docDir);
+				Directory dir = FSDirectory.open(Paths.get(indexPath));
+				Analyzer analyzer = new StandardAnalyzer();
+				IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 
-			// NOTE: if you want to maximize search performance,
-			// you can optionally call forceMerge here. This can be
-			// a terribly costly operation, so generally it's only
-			// worth it when your index is relatively static (ie
-			// you're done adding documents to it):
-			//
-			// writer.forceMerge(1);
+				if (create) {
+					// Create a new index in the directory, removing any
+					// previously indexed documents:
+					iwc.setOpenMode(OpenMode.CREATE);
+				} else {
+					// Add new documents to an existing index:
+					iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
+				}
 
-			writer.close();
+				// Optional: for better indexing performance, if you
+				// are indexing many documents, increase the RAM
+				// buffer. But if you do this, increase the max heap
+				// size to the JVM (eg add -Xmx512m or -Xmx1g):
+				//
+				// iwc.setRAMBufferSizeMB(256.0);
 
-			Date end = new Date();
-			System.out.println(end.getTime() - start.getTime() + " total milliseconds");
+				IndexWriter writer = new IndexWriter(dir, iwc);
+				indexDocs(writer, docDir);
 
-		} catch (IOException e) {
-			System.out.println(" caught a " + e.getClass() + "\n with message: " + e.getMessage());
+				// NOTE: if you want to maximize search performance,
+				// you can optionally call forceMerge here. This can be
+				// a terribly costly operation, so generally it's only
+				// worth it when your index is relatively static (ie
+				// you're done adding documents to it):
+				//
+				// writer.forceMerge(1);
 
+				writer.close();
+
+				Date end = new Date();
+				System.out.println(end.getTime() - start.getTime() + " total milliseconds");
+
+			} catch (IOException e) {
+				System.out.println(" caught a " + e.getClass() + "\n with message: " + e.getMessage());
+
+			}
 		}
-
 	}
 
 	/**
@@ -178,55 +233,148 @@ public class IndexFiles implements Runnable {
 
 	/** Indexes a single document */
 	static void indexDoc(IndexWriter writer, Path file, long lastModified) throws IOException {
+		Document doc = new Document();
 
+		System.out.println();
 		System.out.println(i++);
 		try (InputStream stream = Files.newInputStream(file)) {
 			// make a new, empty document
-			Document doc = new Document();
 
 			// Add the path of the file as a field named "path". Use a
 			// field that is indexed (i.e. searchable), but don't tokenize
 			// the field into separate words and don't index term frequency
 			// or positional information:
 			Field pathField = new StringField("path", file.toString(), Field.Store.YES);
-			doc.add(pathField);
 
-			// Add the last modified date of the file a field named "modified".
-			// Use a LongField that is indexed (i.e. efficiently filterable with
-			// NumericRangeFilter). This indexes to milli-second resolution,
-			// which
-			// is often too fine. You could instead create a number based on
-			// year/month/day/hour/minutes/seconds, down the resolution you
-			// require.
-			// For example the long value 2011021714 would mean
-			// February 17, 2011, 2-3 PM.
-			doc.add(new LongField("modified", lastModified, Field.Store.NO));
+			File fille = new File(file.toString());
 
-			// Add the contents of the file to a field named "contents". Specify
-			// a Reader,
-			// so that the text of the file is tokenized and indexed, but not
-			// stored.
-			// Note that FileReader expects the file to be in UTF-8 encoding.
-			// If that's not the case searching for special characters will
-			// fail.
-			doc.add(new TextField("contents",
-					new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))));
+			String extension = "";
 
-			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
-				// New index, so we just add the document (no old document can
-				// be there):
-				System.out.println("adding " + file);
-				writer.addDocument(doc);
+			int i = fille.getName().lastIndexOf('.');
+			if (i > 0) {
+				extension = fille.getName().substring(i + 1);
+			}
+
+			if (extension.equals("html")) {
+
+				InputStream in = new FileInputStream(fille);
+				doc = getDocument(in, file, lastModified);
 			} else {
-				// Existing index (an old copy of this document may have been
-				// indexed) so
-				// we use updateDocument instead to replace the old one matching
-				// the exact
-				// path, if present:
-				System.out.println("updating " + file);
-				writer.updateDocument(new Term("path", file.toString()), doc);
+				// Add the contents of the file to a field named "contents".
+				// Specify
+				// a Reader,
+				// so that the text of the file is tokenized and indexed, but
+				// not
+				// stored.
+				// Note that FileReader expects the file to be in UTF-8
+				// encoding.
+				// If that's not the case searching for special characters will
+				// fail.
+
+				doc.add(pathField);
+
+				// Add the last modified date of the file a field named
+				// "modified".
+				// Use a LongField that is indexed (i.e. efficiently filterable
+				// with
+				// NumericRangeFilter). This indexes to milli-second resolution,
+				// which
+				// is often too fine. You could instead create a number based on
+				// year/month/day/hour/minutes/seconds, down the resolution you
+				// require.
+				// For example the long value 2011021714 would mean
+				// February 17, 2011, 2-3 PM.
+				doc.add(new LongField("modified", lastModified, Field.Store.NO));
+				doc.add(new TextField("contents",
+						new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))));
 			}
 		}
+
+		if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+			// New index, so we just add the document (no old document can
+			// be there):
+			System.out.println("adding " + file);
+			writer.addDocument(doc);
+		} else {
+			// Existing index (an old copy of this document may have been
+			// indexed) so
+			// we use updateDocument instead to replace the old one matching
+			// the exact
+			// path, if present:
+			System.out.println("updating " + file);
+			writer.updateDocument(new Term("path", file.toString()), doc);
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	public static Document getDocument(InputStream is, Path file, long last) {
+		Document doc = new Document();
+		Field pathField = new StringField("path", file.toString(), Field.Store.YES);
+		System.out.println("somtu");
+		Tidy tidy = new Tidy();
+		tidy.setQuiet(true);
+		tidy.setShowWarnings(false);
+		org.w3c.dom.Document root = tidy.parseDOM(is, null);
+		Element rawDoc = root.getDocumentElement();
+
+		String body = getBody(rawDoc);
+
+		if ((body != null) && (!body.equals(""))) {
+			doc.add(pathField);
+
+			doc.add(new Field("contents", body, Field.Store.NO, Field.Index.ANALYZED));
+		}
+
+		return doc;
+	}
+
+	protected String getTitle(Element rawDoc) {
+		if (rawDoc == null) {
+			return null;
+		}
+
+		String title = "";
+
+		NodeList children = rawDoc.getElementsByTagName("title");
+		if (children.getLength() > 0) {
+			Element titleElement = ((Element) children.item(0));
+			Text text = (Text) titleElement.getFirstChild();
+			if (text != null) {
+				title = text.getData();
+			}
+		}
+		return title;
+	}
+
+	protected static String getBody(Element rawDoc) {
+		if (rawDoc == null) {
+			return null;
+		}
+
+		String body = "";
+		NodeList children = rawDoc.getElementsByTagName("body");
+		if (children.getLength() > 0) {
+			body = getText(children.item(0));
+		}
+		return body;
+	}
+
+	protected static String getText(Node node) {
+		NodeList children = node.getChildNodes();
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < children.getLength(); i++) {
+			Node child = children.item(i);
+			switch (child.getNodeType()) {
+			case Node.ELEMENT_NODE:
+				sb.append(getText(child));
+				sb.append(" ");
+				break;
+			case Node.TEXT_NODE:
+				sb.append(((Text) child).getData());
+				break;
+			}
+		}
+		return sb.toString();
 	}
 
 	@Override
@@ -243,10 +391,7 @@ public class IndexFiles implements Runnable {
 			}
 		});
 	}
-	
-	
-	
-	
+
 	public void showDialog() {
 
 		Alert alert = new Alert(AlertType.INFORMATION);

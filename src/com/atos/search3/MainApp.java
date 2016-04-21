@@ -22,7 +22,7 @@ public class MainApp extends Application {
     private Stage primaryStage;
     private BorderPane rootLayout;
     //@FXML
-    private final ObservableList<Searchresults> data = FXCollections.observableArrayList();
+    public final static ObservableList<Searchresults> data = FXCollections.observableArrayList();
     
     public MainApp() {
         // Add some sample data
@@ -99,7 +99,7 @@ public class MainApp extends Application {
     }
     
     public ObservableList<Searchresults> getPersonData() {
-        
+    	
     	return data;
     }
 }

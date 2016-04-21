@@ -166,6 +166,8 @@ public class SearchController {
 	@FXML
 	private void search() {
 
+		
+		
 		// addtable("Ahoj","Ahoj","Ahoj");
 
 		// data.add(new Searchresults("Ahoj", "Ahoj", 10));
@@ -173,6 +175,7 @@ public class SearchController {
 		System.out.println("Somtu");
 
 		System.out.println(searchfield.getText());
+		MainApp.data.removeAll(MainApp.data);
 		SearchFiles.start(searchfield.getText());
 		System.out.println(searchfield.getText());
 	}
